@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+/* ========================================
+   RAGHAV GARMENTS — Design System
+   Colors: Burgundy + Gold + Cream
+   Fonts: Playfair Display (headings) + Inter (body)
+   ======================================== */
+
+@theme inline {
+  /* Brand Colors */
+  --color-burgundy: #7C1D3E;
+  --color-burgundy-dark: #5A1530;
+  --color-burgundy-light: #9E3A5C;
+
+  --color-gold: #C8964E;
+  --color-gold-light: #E8C88A;
+  --color-gold-dark: #A87A3A;
+
+  --color-cream: #FFF8F0;
+  --color-cream-dark: #F5EDE0;
+
+  --color-charcoal: #1A1A1A;
+  --color-gray: #6B7280;
+  --color-gray-light: #9CA3AF;
+  --color-gray-lighter: #E5E7EB;
+
+  /* Fonts */
+  --font-heading: var(--font-playfair);
+  --font-body: var(--font-inter);
+}
+
+/* Base Styles */
+body {
+  font-family: var(--font-body), system-ui, sans-serif;
+  background-color: var(--color-cream);
+  color: var(--color-charcoal);
+  overflow-x: hidden;
+}
+
+/* Headings use serif font */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading), Georgia, serif;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Selection color */
+::selection {
+  background-color: var(--color-burgundy);
+  color: white;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-cream-dark);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-burgundy-light);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-burgundy);
+}
