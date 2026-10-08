@@ -2,18 +2,28 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Search, Heart, ShoppingBag, User, Menu, X } from "lucide-react";
 import { NAV_LINKS, SITE } from "@/lib/constants";
 import { AnnouncementBar } from "./announcement-bar";
+import { useCartStore } from "@/stores/cart-store";
+import { useWishlistStore } from "@/stores/wishlist-store";
 
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [mounted, setMounted] = useState(false);
+
   const pathname = usePathname();
+  const router = useRouter();
+
+  const { openCart, getTotalCount: getCartCount } = useCartStore();
+  const { getTotalCount: getWishlistCount } = useWishlistStore();
 
   useEffect(() => {
+    setMounted(true);
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
     };
@@ -21,13 +31,26 @@ export function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Close mobile menu when navigating
+  // Close mobile menu and search when navigating
   useEffect(() => {
     setMobileMenuOpen(false);
+    setSearchOpen(false);
   }, [pathname]);
 
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchOpen(false);
+      setSearchQuery("");
+    }
+  };
+
+  const cartCount = mounted ? getCartCount() : 0;
+  const wishlistCount = mounted ? getWishlistCount() : 0;
+
   return (
-    <header className="sticky top-0 z-50 w-full transition-all duration-300">
+    <header className="sticky top-0 z-40 w-full transition-all duration-300">
       <AnnouncementBar />
 
       <nav
@@ -83,7 +106,7 @@ export function Navbar() {
           </div>
 
           {/* Action Icons */}
-          <div className="flex items-center space-x-3 sm:space-x-4">
+          <div className="flex items-center space-x-2 sm:space-x-4">
             {/* Search toggle */}
             <button
               onClick={() => setSearchOpen(!searchOpen)}
@@ -95,27 +118,31 @@ export function Navbar() {
 
             {/* Wishlist */}
             <Link
-              href="/account/wishlist"
+              href="/wishlist"
               className="p-2 text-charcoal/80 hover:text-burgundy transition-colors rounded-full hover:bg-burgundy/5 relative"
               aria-label="View Wishlist"
             >
               <Heart className="w-5 h-5" />
-              <span className="absolute top-1 right-1 bg-burgundy text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
-                0
-              </span>
+              {wishlistCount > 0 && (
+                <span className="absolute top-1 right-1 bg-burgundy text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold animate-scaleIn">
+                  {wishlistCount}
+                </span>
+              )}
             </Link>
 
-            {/* Cart */}
-            <Link
-              href="/cart"
-              className="p-2 text-charcoal/80 hover:text-burgundy transition-colors rounded-full hover:bg-burgundy/5 relative"
-              aria-label="View Shopping Cart"
+            {/* Cart Drawer Trigger */}
+            <button
+              onClick={openCart}
+              className="p-2 text-charcoal/80 hover:text-burgundy transition-colors rounded-full hover:bg-burgundy/5 relative cursor-pointer"
+              aria-label="Open Shopping Bag"
             >
               <ShoppingBag className="w-5 h-5" />
-              <span className="absolute top-1 right-1 bg-gold-dark text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
-                0
-              </span>
-            </Link>
+              {cartCount > 0 && (
+                <span className="absolute top-1 right-1 bg-gold-dark text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold animate-scaleIn">
+                  {cartCount}
+                </span>
+              )}
+            </button>
 
             {/* User Account */}
             <Link
@@ -130,29 +157,38 @@ export function Navbar() {
 
         {/* Search Bar dropdown */}
         {searchOpen && (
-          <div className="border-t border-burgundy/10 bg-cream-dark/95 backdrop-blur-md px-4 py-3">
-            <div className="max-w-2xl mx-auto flex items-center gap-2">
-              <Search className="w-5 h-5 text-gray" />
+          <div className="border-t border-burgundy/10 bg-cream-dark/95 backdrop-blur-md px-4 py-3 shadow-inner">
+            <form onSubmit={handleSearchSubmit} className="max-w-2xl mx-auto flex items-center gap-2">
+              <Search className="w-5 h-5 text-gray shrink-0" />
               <input
                 type="text"
-                placeholder="Search sherwanis, sarees, kurtas, suits..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search sherwanis, banarasi sarees, linen shirts, kids lehengas..."
                 className="w-full bg-transparent border-none outline-none text-charcoal placeholder-gray text-sm focus:ring-0"
                 autoFocus
               />
               <button
-                onClick={() => setSearchOpen(false)}
-                className="text-xs uppercase text-burgundy font-semibold hover:underline"
+                type="submit"
+                className="text-xs uppercase bg-burgundy text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-burgundy-dark transition-colors"
               >
-                Close
+                Search
               </button>
-            </div>
+              <button
+                type="button"
+                onClick={() => setSearchOpen(false)}
+                className="text-xs text-gray hover:text-charcoal p-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </form>
           </div>
         )}
 
         {/* Mobile Navigation Drawer */}
         {mobileMenuOpen && (
           <div className="lg:hidden fixed inset-x-0 top-full bg-cream border-b border-burgundy/10 shadow-xl px-6 py-6 transition-all duration-300">
-            <div className="flex flex-col space-y-4">
+            <div className="flex flex-col space-y-3">
               {NAV_LINKS.map((link) => (
                 <Link
                   key={link.href}
@@ -162,14 +198,43 @@ export function Navbar() {
                   {link.label}
                 </Link>
               ))}
-              <div className="pt-4 flex items-center justify-between">
+              <div className="pt-4 flex flex-col space-y-2">
+                <Link
+                  href="/wishlist"
+                  className="flex items-center justify-between text-sm font-medium text-charcoal hover:text-burgundy py-1"
+                >
+                  <span className="flex items-center gap-2">
+                    <Heart className="w-4 h-4 text-burgundy" /> Saved Wishlist
+                  </span>
+                  {wishlistCount > 0 && (
+                    <span className="bg-burgundy text-white text-xs px-2 py-0.5 rounded-full">
+                      {wishlistCount}
+                    </span>
+                  )}
+                </Link>
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    openCart();
+                  }}
+                  className="flex items-center justify-between text-sm font-medium text-charcoal hover:text-burgundy py-1 text-left"
+                >
+                  <span className="flex items-center gap-2">
+                    <ShoppingBag className="w-4 h-4 text-gold-dark" /> Shopping Bag
+                  </span>
+                  {cartCount > 0 && (
+                    <span className="bg-gold-dark text-white text-xs px-2 py-0.5 rounded-full">
+                      {cartCount}
+                    </span>
+                  )}
+                </button>
                 <Link
                   href="/account"
-                  className="flex items-center gap-2 text-sm font-medium text-burgundy"
+                  className="flex items-center gap-2 text-sm font-medium text-burgundy py-1 pt-2 border-t border-burgundy/5"
                 >
                   <User className="w-4 h-4" /> My Account
                 </Link>
-                <span className="text-xs text-gray">{SITE.tagline}</span>
+                <span className="text-[11px] text-gray pt-1">{SITE.tagline}</span>
               </div>
             </div>
           </div>

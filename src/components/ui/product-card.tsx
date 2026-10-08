@@ -3,9 +3,11 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Heart, ShoppingBag, Star, Eye } from "lucide-react";
+import { Heart, Eye, Star, ShoppingBag } from "lucide-react";
 import { Product } from "@/types/product";
 import { formatPrice } from "@/lib/utils";
+import { useWishlistStore } from "@/stores/wishlist-store";
+import { useQuickViewStore } from "@/stores/quick-view-store";
 
 interface ProductCardProps {
   product: Product;
@@ -13,40 +15,49 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, priority = false }: ProductCardProps) {
-  const [isLiked, setIsLiked] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const { toggleWishlist, isInWishlist } = useWishlistStore();
+  const { openQuickView } = useQuickViewStore();
 
+  const isLiked = isInWishlist(product.id);
   const discount = product.compare_price
     ? Math.round(((product.compare_price - product.price) / product.compare_price) * 100)
     : 0;
 
   return (
     <div
-      className="group relative bg-cream-dark/40 rounded-2xl overflow-hidden border border-burgundy/10 hover:border-gold/40 transition-all duration-300 hover:shadow-lg flex flex-col"
+      className="group relative bg-cream-dark/30 rounded-2xl overflow-hidden border border-burgundy/10 hover:border-gold/50 transition-all duration-300 hover:shadow-xl flex flex-col"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Image Container */}
       <div className="relative aspect-[3/4] w-full overflow-hidden bg-cream-dark">
-        <Image
-          src={product.images[0]}
-          alt={product.name}
-          fill
-          priority={priority}
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          className="object-cover object-top transition-transform duration-700 ease-out group-hover:scale-105"
-        />
+        <Link href={`/product/${product.slug}`} className="block w-full h-full">
+          <Image
+            src={product.images[0]}
+            alt={product.name}
+            fill
+            priority={priority}
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+            className="object-cover object-top transition-transform duration-700 ease-out group-hover:scale-105"
+          />
+        </Link>
 
         {/* Badges */}
-        <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
+        <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10 pointer-events-none">
           {discount > 0 && (
-            <span className="bg-burgundy text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full shadow-sm">
+            <span className="bg-burgundy text-white text-[10px] sm:text-[11px] font-bold px-2.5 py-0.5 rounded-full shadow-sm">
               {discount}% OFF
             </span>
           )}
-          {product.featured && (
-            <span className="bg-gold-dark text-white text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded-full shadow-sm">
+          {product.isBestSeller && (
+            <span className="bg-gold-dark text-white text-[9px] sm:text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded-full shadow-sm">
               Bestseller
+            </span>
+          )}
+          {product.isNewArrival && !product.isBestSeller && (
+            <span className="bg-charcoal text-white text-[9px] sm:text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded-full shadow-sm">
+              New
             </span>
           )}
         </div>
@@ -54,15 +65,29 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
         {/* Action Buttons (Wishlist & Quick View) */}
         <div className="absolute top-3 right-3 flex flex-col gap-2 z-10">
           <button
-            onClick={() => setIsLiked(!isLiked)}
-            aria-label="Add to wishlist"
-            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 shadow-md ${
+            onClick={(e) => {
+              e.preventDefault();
+              toggleWishlist(product);
+            }}
+            aria-label={isLiked ? "Remove from wishlist" : "Add to wishlist"}
+            className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition-all duration-200 shadow-md ${
               isLiked
                 ? "bg-burgundy text-white"
                 : "bg-white/90 text-charcoal hover:bg-white hover:text-burgundy"
             }`}
           >
             <Heart className={`w-4 h-4 ${isLiked ? "fill-white" : ""}`} />
+          </button>
+
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              openQuickView(product);
+            }}
+            aria-label="Quick View"
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/90 text-charcoal hover:bg-white hover:text-burgundy flex items-center justify-center transition-all duration-200 shadow-md"
+          >
+            <Eye className="w-4 h-4" />
           </button>
         </div>
 
@@ -74,24 +99,24 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
               : "opacity-0 translate-y-3 pointer-events-none"
           }`}
         >
-          <Link
-            href={`/product/${product.slug}`}
+          <button
+            onClick={() => openQuickView(product)}
             className="w-full bg-burgundy/95 hover:bg-burgundy text-white text-xs font-semibold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg backdrop-blur-sm transition-colors"
           >
             <ShoppingBag className="w-3.5 h-3.5" />
-            <span>Select Options</span>
-          </Link>
+            <span>Quick View & Select</span>
+          </button>
         </div>
       </div>
 
       {/* Details Container */}
-      <div className="p-4 flex flex-col flex-1 justify-between">
+      <div className="p-4 flex flex-col flex-1 justify-between bg-white">
         <div>
           <div className="flex items-center justify-between text-xs text-gray mb-1">
             <span className="capitalize">{product.category}&apos;s {product.subcategory}</span>
             <div className="flex items-center gap-1 text-gold-dark font-medium">
               <Star className="w-3.5 h-3.5 fill-gold-dark text-gold-dark" />
-              <span>4.9</span>
+              <span>{product.rating}</span>
             </div>
           </div>
 
@@ -121,7 +146,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
               <span
                 key={idx}
                 title={col.name}
-                className="w-3 h-3 rounded-full border border-white shadow-sm"
+                className="w-3.5 h-3.5 rounded-full border border-white shadow-xs"
                 style={{ backgroundColor: col.hex }}
               />
             ))}
